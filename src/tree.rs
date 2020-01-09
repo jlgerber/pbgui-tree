@@ -1,234 +1,197 @@
-use qt_core::QAbstractItemModel;
+use crate::api::{ClientProxy, PackratDb};
+use crate::inner_tree::InnerTreeView;
 use qt_core::{QModelIndex, SlotOfQModelIndex};
 use qt_gui::{QStandardItem, QStandardItemModel};
 use qt_widgets::{
-    cpp_core::{CastInto, CppBox, DynamicCast, MutPtr, Ref, StaticUpcast},
-    QFrame, QMainWindow, QTreeView, QWidget,
+    cpp_core::{MutPtr, Ref, StaticUpcast},
+    QWidget,
 };
-use rustqt_utils::{qs, set_stylesheet_from_str, ToQStringOwned};
+use rustqt_utils::ToQStringOwned;
+use std::cell::RefCell;
+use std::rc::Rc;
 
-const STYLE_STR: &'static str = include_str!("../resources/tree.qss");
-
-pub struct InnerTreeView {
-    pub view: MutPtr<QTreeView>,
-}
-
-impl InnerTreeView {
-    /// create a treeview
-    pub fn create<T>(main_window: MutPtr<T>) -> InnerTreeView
-    where
-        T: StaticUpcast<QWidget>,
-    {
-        unsafe {
-            let main_window = main_window.static_upcast_mut();
-            let mut treeview = QTreeView::new_0a();
-            let mut treeview_ptr = treeview.as_mut_ptr();
-            treeview_ptr.set_root_is_decorated(true);
-            treeview_ptr.set_items_expandable(true);
-            treeview_ptr.set_uniform_row_heights(true);
-            main_window.layout().add_widget(treeview.into_ptr());
-
-            let mut model = QStandardItemModel::new_0a();
-            model.set_column_count(1);
-            treeview_ptr.set_model(model.into_ptr());
-
-            InnerTreeView { view: treeview_ptr }
+//makes it simpler to deal with the need to clone. Saw this here:
+// https://github.com/rust-webplatform/rust-todomvc/blob/master/src/main.rs#L142
+macro_rules! enclose {
+    ( ($(  $x:ident ),*) $y:expr ) => {
+        {
+            $(let $x = $x.clone();)*
+            $y
         }
-    }
-
-    /// Set the stylesheet to the internal stylesheet
-    pub fn set_default_stylesheet(&mut self) {
-        set_stylesheet_from_str(STYLE_STR, self.view);
-    }
-    /// Retreive the model from the view
-    pub fn model(&mut self) -> MutPtr<QStandardItemModel> {
-        unsafe {
-            let model = self.view.model();
-            if model.is_null() {
-                panic!("Unable to retrieve modelfrom model pointer obtained via view.model()");
-            }
-            QAbstractItemModel::dynamic_cast_mut(model)
-        }
-    }
-
-    /// Given a type that implements ToQstringOwned, append a distribution
-    pub fn add_package<T: ToQStringOwned>(&mut self, input: T) {
-        unsafe {
-            let mut model = self.model();
-            let row_count = model.row_count_0a();
-            let mut parent = model.invisible_root_item();
-            let mut item = QStandardItem::new();
-            item.set_text(&input.to_qstring());
-            item.set_editable(false);
-            parent.append_row_q_standard_item(item.into_ptr());
-            model.set_row_count(row_count + 1);
-        }
-    }
-
-    pub fn clear_packages(&mut self) {
-        unsafe {
-            let mut model = self.model();
-            for c in (0..model.row_count_0a()).rev() {
-                model.clear_item_data(&self.model().index_2a(c, 0));
-            }
-            model.set_row_count(0)
-        }
-    }
-    /// Given a vectro of a type that implements ToQstringOwned, append a distribution
-    pub fn set_packages<T: ToQStringOwned>(&mut self, inputs: Vec<T>) {
-        unsafe {
-            let mut model = self.model();
-            let mut parent = model.invisible_root_item();
-            //model.clear(); // this removes columns as well. and segfaults
-            let row_cnt = inputs.len() as i32;
-            //
-            for input in inputs {
-                let mut item = QStandardItem::new();
-                let txt = input.to_qstring();
-                item.set_text(&txt);
-                item.set_editable(false);
-                // add one fake item to force qt to draw a
-                let mut child = QStandardItem::new();
-                child.set_text(&qs(""));
-                child.set_editable(false);
-                item.append_row_q_standard_item(child.into_ptr());
-                parent.append_row_q_standard_item(item.into_ptr());
-            }
-            model.set_row_count(row_cnt);
-        }
-    }
-    //pub fn set_d
-    pub fn add_distribution<I>(&mut self, mut parent: MutPtr<qt_gui::QStandardItem>, version: I)
-    where
-        I: ToQStringOwned,
-    {
-        unsafe {
-            let mut item = QStandardItem::new();
-            let txt = version.to_qstring();
-            item.set_text(&txt);
-            item.set_editable(false);
-            parent.append_row_q_standard_item(item.into_ptr());
-        }
-    }
+    };
 }
 
 pub struct DistributionTreeView<'a> {
-    pub view: MutPtr<QTreeView>,
+    pub view: Rc<RefCell<InnerTreeView>>,
     pub clicked: SlotOfQModelIndex<'a>,
     pub expanded: SlotOfQModelIndex<'a>,
     pub collapsed: SlotOfQModelIndex<'a>,
 }
 
+// filter using is any
+fn is_not_any(item: &str) -> Option<&str> {
+    if item == "any" {
+        None
+    } else {
+        Some(item)
+    }
+}
+
 impl<'a> DistributionTreeView<'a> {
-    /// create a treeview
-    pub fn create<T>(main_window: MutPtr<T>) -> DistributionTreeView<'a>
+    /// create a treeview given a main window of any type that can be cast to QWidget
+    ///
+    /// # Arguments
+    /// * `parent_widget` - The parent of the tree view
+    ///
+    /// # Returns
+    /// * `DistributionTreeView instance
+    pub fn create<T>(parent_widget: MutPtr<T>) -> DistributionTreeView<'a>
     where
         T: StaticUpcast<QWidget>,
     {
         unsafe {
-            let main_window = main_window.static_upcast_mut();
-            let mut treeview = QTreeView::new_0a();
-            let mut treeview_ptr = treeview.as_mut_ptr();
-            treeview_ptr.set_root_is_decorated(true);
-            treeview_ptr.set_items_expandable(true);
-            treeview_ptr.set_uniform_row_heights(true);
-            main_window.layout().add_widget(treeview.into_ptr());
-
-            let mut model = QStandardItemModel::new_0a();
-            model.set_column_count(1);
-            treeview_ptr.set_model(model.into_ptr());
-
+            let treeview = Rc::new(RefCell::new(InnerTreeView::create(parent_widget)));
             let dtv = DistributionTreeView {
-                view: treeview_ptr,
-                clicked: SlotOfQModelIndex::new(move |idx: Ref<QModelIndex>| {
-                    println!("clicked {}", idx.row())
+                view: treeview.clone(),
+                // Slots
+                clicked: SlotOfQModelIndex::new(move |_idx: Ref<QModelIndex>| {
+                    //let parent = idx.parent();
                 }),
-                expanded: SlotOfQModelIndex::new(move |idx: Ref<QModelIndex>| {
-                    println!("expanded {}", idx.row());
-                }),
-                collapsed: SlotOfQModelIndex::new(move |idx: Ref<QModelIndex>| {
-                    println!("collapsed {}", idx.row());
-                }),
+
+                expanded: SlotOfQModelIndex::new(
+                    enclose! { (treeview) move |idx: Ref<QModelIndex>| {
+                        let model = treeview.borrow().model();
+                        let row_cnt = model.row_count_1a(idx);
+                        if  row_cnt > 1 { return; }
+
+                        // what if we only have 1 item? Lets make sure that it isnt
+                        // an intended child (eg a single version or platform)
+                        let child = idx.child(0,0);
+                        if !child.is_valid() || model.item_from_index(child.as_ref()).text().to_std_string() != "" {
+                            return;
+                        }
+
+                        let item = model.item_from_index(idx);
+                        let item_str = item.text().to_std_string();
+
+                        let client = ClientProxy::connect().expect("Unable to connect via ClientProxy");
+                        let mut db = PackratDb::new(client);
+
+                        // we are a child of the root. Our parent is not "valid"
+                        if idx.parent().is_valid() == false {
+                            let results = db
+                                .find_all_distributions()
+                                .package(&item_str)
+                                .query()
+                                .expect("unable to find_all_distributions");
+                            let results = results.iter().map(|s| s.version.as_str()).collect::<Vec<_>>();
+                            if results.len() > 0 {
+                                treeview.borrow_mut().model().remove_rows_3a(0,1, idx);
+                                treeview.borrow_mut().set_children(item, results, true);
+                            }
+                        } else {
+                            // if we are not the child of the root, we must be the version, revealing
+                            // the platform
+                            let results = db
+                                .find_all_platforms()
+                                .query()
+                                .expect("unable to find_all_platforms");
+                            let results = results.iter().filter_map(|s| is_not_any(s.name.as_str())).collect::<Vec<_>>();
+                            if results.len() > 0 {
+                                treeview.borrow_mut().model().remove_rows_3a(0,1, idx);
+                                treeview.borrow_mut().set_children(item, results, false);
+                            }
+                        }
+                    }},
+                ),
+
+                collapsed: SlotOfQModelIndex::new(
+                    enclose! { (treeview) move |idx: Ref<QModelIndex>| {
+                        if treeview.borrow().model().row_count_1a(idx) == 1 {
+                            treeview.borrow_mut().view.set_row_hidden(0, idx, false);
+                        }
+                    }},
+                ),
             };
-            treeview_ptr.clicked().connect(&dtv.clicked);
-            treeview_ptr.expanded().connect(&dtv.expanded);
-            treeview_ptr.collapsed().connect(&dtv.collapsed);
+
+            // Set up signals & slots
+            treeview.borrow().view.clicked().connect(&dtv.clicked);
+            treeview.borrow().view.expanded().connect(&dtv.expanded);
+            treeview.borrow().view.collapsed().connect(&dtv.collapsed);
+
             dtv
         }
     }
 
     /// Set the stylesheet to the internal stylesheet
+    ///
+    /// # Arguments
+    /// * None
+    ///
+    /// # Returns
+    /// *None
     pub fn set_default_stylesheet(&mut self) {
-        set_stylesheet_from_str(STYLE_STR, self.view);
+        self.view.borrow_mut().set_default_stylesheet();
     }
+
     /// Retreive the model from the view
-    pub fn model(&mut self) -> MutPtr<QStandardItemModel> {
-        unsafe {
-            let model = self.view.model();
-            if model.is_null() {
-                panic!("Unable to retrieve modelfrom model pointer obtained via view.model()");
-            }
-            QAbstractItemModel::dynamic_cast_mut(model)
-        }
+    ///
+    /// # Aeguments
+    /// * None
+    ///
+    /// # Returns
+    /// * A mutable pointer to the QStandardItemModel
+    pub fn model(&self) -> MutPtr<QStandardItemModel> {
+        self.view.borrow().model()
     }
 
-    /// Given a type that implements ToQstringOwned, append a distribution
+    /// Given a type that implements ToQstringOwned, append a distribution.
+    ///
+    /// # Arguments
+    /// * `input` - Instance of any type that implements the ToQStringOwned trait.
+    /// (this includes &str, String and QString)
+    ///
+    /// # Returns
+    /// * None
     pub fn add_package<T: ToQStringOwned>(&mut self, input: T) {
-        unsafe {
-            let mut model = self.model();
-            let row_count = model.row_count_0a();
-            let mut parent = model.invisible_root_item();
-            let mut item = QStandardItem::new();
-            item.set_text(&input.to_qstring());
-            item.set_editable(false);
-            parent.append_row_q_standard_item(item.into_ptr());
-            model.set_row_count(row_count + 1);
-        }
+        self.view.borrow_mut().add_package(input);
     }
 
+    /// Clear the list of packages
+    ///
+    /// # Arguments
+    /// * None
+    ///
+    /// # Returns
+    /// * None
     pub fn clear_packages(&mut self) {
-        unsafe {
-            let mut model = self.model();
-            for c in (0..model.row_count_0a()).rev() {
-                model.clear_item_data(&self.model().index_2a(c, 0));
-            }
-            model.set_row_count(0)
-        }
+        self.view.borrow_mut().clear_packages();
     }
-    /// Given a vectro of a type that implements ToQstringOwned, append a distribution
+
+    /// Given a vector of a type that implements the ToQstringOwned trait, set the packages
+    /// to match the list.
+    ///
+    /// # Arguments
+    /// * `inputs` - A vecctor of package names (&str or String or QString or...)
+    ///
+    /// # Returns
+    /// * None
     pub fn set_packages<T: ToQStringOwned>(&mut self, inputs: Vec<T>) {
-        unsafe {
-            let mut model = self.model();
-            let mut parent = model.invisible_root_item();
-            //model.clear(); // this removes columns as well. and segfaults
-            let row_cnt = inputs.len() as i32;
-            //
-            for input in inputs {
-                let mut item = QStandardItem::new();
-                let txt = input.to_qstring();
-                item.set_text(&txt);
-                item.set_editable(false);
-                // add one fake item to force qt to draw a
-                let mut child = QStandardItem::new();
-                child.set_text(&qs(""));
-                child.set_editable(false);
-                item.append_row_q_standard_item(child.into_ptr());
-                parent.append_row_q_standard_item(item.into_ptr());
-            }
-            model.set_row_count(row_cnt);
-        }
+        self.view.borrow_mut().set_packages(inputs);
     }
-    //pub fn set_d
-    pub fn add_distribution<I>(&mut self, mut parent: MutPtr<qt_gui::QStandardItem>, version: I)
+
+    /// Add a child to the provided parent.
+    ///
+    /// # Arguments
+    /// * `parent` - a mutable pointer to a QStandardItem rep of a package
+    /// * `child` - a disribution version, represented by any type implementing the ToQStringOwned trait.
+    ///
+    /// # Returns
+    /// * None
+    pub fn add_child<I>(&mut self, parent: MutPtr<QStandardItem>, child: I)
     where
         I: ToQStringOwned,
     {
-        unsafe {
-            let mut item = QStandardItem::new();
-            let txt = version.to_qstring();
-            item.set_text(&txt);
-            item.set_editable(false);
-            parent.append_row_q_standard_item(item.into_ptr());
-        }
+        self.view.borrow_mut().add_child(parent, child);
     }
 }
