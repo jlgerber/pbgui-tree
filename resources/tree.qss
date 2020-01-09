@@ -1,0 +1,3 @@
+QTreeView {
+    background: grey;
+}
