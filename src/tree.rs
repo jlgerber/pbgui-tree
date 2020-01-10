@@ -1,10 +1,10 @@
 use crate::api::{ClientProxy, PackratDb};
 use crate::inner_tree::InnerTreeView;
 use packybara::traits::*;
-use qt_core::{QAbstractItemModel, QModelIndex, SlotOfQModelIndex};
+use qt_core::{QModelIndex, SlotOfQModelIndex};
 use qt_gui::{QStandardItem, QStandardItemModel};
 use qt_widgets::{
-    cpp_core::{CastInto, MutPtr, Ptr, Ref, StaticDowncast, StaticUpcast},
+    cpp_core::{CastInto, MutPtr, Ref, StaticUpcast},
     QComboBox, QFrame, QLabel, QLayout, QWidget,
 };
 
@@ -69,7 +69,7 @@ impl<'a> DistributionTreeView<'a> {
                 view: treeview.clone(),
                 cbox: cbox_p,
                 // Slots
-                clicked: SlotOfQModelIndex::new(move |idx: Ref<QModelIndex>| {
+                clicked: SlotOfQModelIndex::new(move |_idx: Ref<QModelIndex>| {
                     tv.borrow_mut().clear_selection();
                 }),
 
