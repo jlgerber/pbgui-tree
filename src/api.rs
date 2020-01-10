@@ -1,6 +1,5 @@
 pub use packybara::packrat::PackratDb;
 use packybara::packrat::{Client, NoTls};
-
 pub struct ClientProxy {}
 
 impl ClientProxy {

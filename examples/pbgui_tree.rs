@@ -1,5 +1,6 @@
 use packybara::packrat::PackratDb;
 use packybara::packrat::{Client, NoTls};
+use packybara::traits::*;
 use pbgui_tree::tree;
 use qt_core::QResource;
 use qt_widgets::{QApplication, QFrame, QMainWindow, QPushButton, QWidget};
@@ -19,42 +20,52 @@ impl ClientProxy {
 
 fn main() {
     QApplication::init(|_app| unsafe {
-        let _result = QResource::register_resource_q_string(&qs("/Users/jgerber/bin/pbgui.rcc"));
+        let _result = QResource::register_resource_q_string(&qs(
+            "/Users/jgerber/src/rust/pbgui-tree/resources/pbgui_tree.rcc",
+        ));
         let mut main_window = QMainWindow::new_0a();
         let mut main_widget = QFrame::new_0a();
         let main_widget_ptr = main_widget.as_mut_ptr();
 
         // main_layout
         let mut main_layout = create_vlayout();
-        let mut main_layout_ptr = main_layout.as_mut_ptr();
+        //let  main_layout_ptr = main_layout.as_mut_ptr();
         main_widget.set_layout(main_layout.into_ptr());
         // set main_widget as the central widget in main_window
         main_window.set_central_widget(main_widget.into_ptr());
 
-        let b1 = QPushButton::from_q_string(&qs("top"));
-        let b2 = QPushButton::from_q_string(&qs("Bottom"));
-        main_layout_ptr.add_widget(b1.into_ptr());
         let mut mytree = tree::DistributionTreeView::create(main_widget_ptr);
         mytree.set_default_stylesheet();
         mytree.set_packages(vec!["foo", "bar", "bla"]);
 
         mytree.clear_packages();
-        //mytree.set_packages(vec!["maya", "nuke", "houdini"]);
-        //mytree.add_package("mari");
-        main_layout_ptr.add_widget(b2.into_ptr());
-
-        //tb.set_default_stylesheet();
         let client = ClientProxy::connect().expect("Unable to connect via ClientProxy");
         let mut db = PackratDb::new(client);
 
-        let results = db
-            .find_all_packages()
-            .query()
-            .expect("unable to find_all_packages");
+        let results = get_all_packages(&mut db);
         let results = results.iter().map(|s| s.name.as_str()).collect::<Vec<_>>();
-        //tb.set_level_items(results);
+        let sites = get_all_sites(&mut db);
+        let sites = sites.iter().map(|s| s.name.as_str()).collect::<Vec<_>>();
+
         mytree.set_packages(results);
+        mytree.set_cb_items(sites, "portland");
         main_window.show();
         QApplication::exec()
     });
+}
+
+fn get_all_packages(
+    db: &mut PackratDb,
+) -> std::vec::Vec<packybara::db::find_all::packages::FindAllPackagesRow> {
+    db.find_all_packages()
+        .query()
+        .expect("unable to find_all_packages")
+}
+
+fn get_all_sites(
+    db: &mut PackratDb,
+) -> std::vec::Vec<packybara::db::find_all::sites::FindAllSitesRow> {
+    db.find_all_sites()
+        .query()
+        .expect("unable to find_all_sites")
 }

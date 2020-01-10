@@ -1,12 +1,14 @@
 use crate::api::{ClientProxy, PackratDb};
 use crate::inner_tree::InnerTreeView;
+use packybara::traits::*;
 use qt_core::{QModelIndex, SlotOfQModelIndex};
 use qt_gui::{QStandardItem, QStandardItemModel};
 use qt_widgets::{
-    cpp_core::{MutPtr, Ref, StaticUpcast},
-    QWidget,
+    cpp_core::{CastInto, MutPtr, Ref, StaticUpcast},
+    QComboBox, QFrame, QLabel, QLayout, QWidget,
 };
-use rustqt_utils::ToQStringOwned;
+
+use rustqt_utils::{create_hlayout, create_vlayout, qs, ToQStringOwned};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -22,6 +24,7 @@ macro_rules! enclose {
 }
 
 pub struct DistributionTreeView<'a> {
+    pub cbox: MutPtr<QComboBox>,
     pub view: Rc<RefCell<InnerTreeView>>,
     pub clicked: SlotOfQModelIndex<'a>,
     pub expanded: SlotOfQModelIndex<'a>,
@@ -50,9 +53,21 @@ impl<'a> DistributionTreeView<'a> {
         T: StaticUpcast<QWidget>,
     {
         unsafe {
-            let treeview = Rc::new(RefCell::new(InnerTreeView::create(parent_widget)));
+            let mut qframe = QFrame::new_0a();
+            let qframe_ptr = qframe.as_mut_ptr();
+            let mut layout = create_vlayout();
+            let layout_ptr = layout.as_mut_ptr();
+            qframe.set_layout(layout.into_ptr());
+
+            let parent_widget = parent_widget.static_upcast_mut();
+            parent_widget.layout().add_widget(qframe.into_ptr());
+
+            let cbox_p = Self::create_cbox(layout_ptr);
+
+            let treeview = Rc::new(RefCell::new(InnerTreeView::create(qframe_ptr)));
             let dtv = DistributionTreeView {
                 view: treeview.clone(),
+                cbox: cbox_p,
                 // Slots
                 clicked: SlotOfQModelIndex::new(move |_idx: Ref<QModelIndex>| {
                     //let parent = idx.parent();
@@ -193,5 +208,84 @@ impl<'a> DistributionTreeView<'a> {
         I: ToQStringOwned,
     {
         self.view.borrow_mut().add_child(parent, child);
+    }
+
+    #[allow(dead_code)]
+    /// Set comboboc items, replacing any extant items
+    ///
+    /// # Arguments
+    /// * `items` - Vector of items
+    ///
+    /// # Returns
+    /// * None
+    pub fn set_cb_items<'c, I>(&mut self, items: Vec<I>, current: I)
+    where
+        I: AsRef<str>,
+    {
+        unsafe {
+            self.remove_cb_items();
+            let mut idx = 0;
+            let mut cnt = 0;
+            for item in items {
+                if current.as_ref() == item.as_ref() {
+                    idx = cnt;
+                }
+                self.cbox.add_item_q_string(&qs(item.as_ref()));
+                cnt += 1;
+            }
+            self.cbox.set_current_index(idx);
+        }
+    }
+
+    #[allow(dead_code)]
+    /// Remove all items from the combobox
+    ///
+    /// # Arguments
+    /// * None
+    ///
+    /// # Returns None
+    pub fn remove_cb_items(&mut self) {
+        unsafe {
+            self.cbox.clear();
+        }
+    }
+
+    /// Change the max number of items displayed in the combobox's dropdown
+    /// list
+    ///
+    /// # Arguments
+    /// * `max` - Maximum number of visible items in the comobobox's dropdown
+    ///
+    /// # Returns
+    /// * None
+    pub fn set_cb_max_visible_items(&mut self, max: i32) {
+        unsafe {
+            self.cbox.set_max_visible_items(max);
+        }
+    }
+
+    fn create_cbox<I>(layout: I) -> MutPtr<QComboBox>
+    where
+        I: CastInto<MutPtr<QLayout>>,
+    {
+        unsafe {
+            // combo_box
+            let mut horiz_frame = QFrame::new_0a();
+            let mut h_layout = create_hlayout();
+            let mut h_layout_p = h_layout.as_mut_ptr();
+            horiz_frame.set_layout(h_layout.into_ptr());
+
+            h_layout_p.add_stretch_1a(1);
+            let site_l = QLabel::from_q_string(&qs("Site"));
+            h_layout_p.add_widget(site_l.into_ptr());
+
+            let mut cbox = QComboBox::new_0a();
+            let cbox_p = cbox.as_mut_ptr();
+            h_layout_p.add_widget(cbox.into_ptr());
+
+            layout.cast_into().add_widget(horiz_frame.into_ptr());
+
+            cbox_p
+        }
     }
 }

@@ -1,3 +1,13 @@
 QTreeView {
     background: rgb(40,40,40);
 }
+QTreeView::item:hover {
+        image: url(":images/pin_white.png");
+        qproperty-iconSize: 14px;
+
+}
+QTreeView::item:checked {
+        image: url(":images/pin_blue.png");
+        qproperty-iconSize: 14px;
+
+}

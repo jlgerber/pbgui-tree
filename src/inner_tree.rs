@@ -28,6 +28,7 @@ impl InnerTreeView {
             treeview_ptr.set_root_is_decorated(true);
             treeview_ptr.set_items_expandable(true);
             treeview_ptr.set_uniform_row_heights(true);
+            treeview_ptr.set_header_hidden(true);
             parent_widget.layout().add_widget(treeview.into_ptr());
 
             let mut model = QStandardItemModel::new_0a();
