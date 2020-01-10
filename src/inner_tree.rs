@@ -1,11 +1,16 @@
 use qt_core::QAbstractItemModel;
+use qt_core::QSize;
+use qt_gui::{
+    q_icon::{Mode, State},
+    QIcon,
+};
 use qt_gui::{QStandardItem, QStandardItemModel};
 use qt_widgets::{
-    cpp_core::{DynamicCast, MutPtr, StaticUpcast},
+    cpp_core::{DynamicCast, MutPtr, StaticDowncast, StaticUpcast},
+    q_header_view::ResizeMode,
     QTreeView, QWidget,
 };
 use rustqt_utils::{qs, set_stylesheet_from_str, ToQStringOwned};
-
 const STYLE_STR: &'static str = include_str!("../resources/tree.qss");
 
 /// A struct holding the QTreeView and providing a simple Api, mirrored
@@ -32,9 +37,13 @@ impl InnerTreeView {
             parent_widget.layout().add_widget(treeview.into_ptr());
 
             let mut model = QStandardItemModel::new_0a();
-            model.set_column_count(1);
+            model.set_column_count(2);
             treeview_ptr.set_model(model.into_ptr());
-
+            treeview_ptr.header().resize_section(1, 20);
+            treeview_ptr.header().set_stretch_last_section(false);
+            treeview_ptr
+                .header()
+                .set_section_resize_mode_2a(0, ResizeMode::Stretch);
             InnerTreeView { view: treeview_ptr }
         }
     }
@@ -133,6 +142,7 @@ impl InnerTreeView {
         I: ToQStringOwned,
     {
         unsafe {
+            let mut cnt = 0;
             for child in children {
                 let mut item = QStandardItem::new();
                 let txt = child.to_qstring();
@@ -145,8 +155,28 @@ impl InnerTreeView {
                     child_item.set_editable(false);
                     item.append_row_q_standard_item(child_item.into_ptr());
                 }
+                let mut icon_item = QStandardItem::new();
+                //Self::set_icon(&mut icon_item.as_mut_ptr());
+                //let mut model: MutPtr<QStandardItemModel> = self.view.model().static_downcast_mut();
                 parent.append_row_q_standard_item(item.into_ptr());
+                parent.set_child_3a(cnt, 1, icon_item.into_ptr());
+                cnt += 1;
             }
         }
+    }
+
+    pub fn clear_selection(&self) {
+        unsafe {
+            self.view.selection_model().clear_selection();
+        }
+    }
+    unsafe fn set_icon(item: &mut MutPtr<QStandardItem>) {
+        let mut mode_icon = QIcon::new();
+        let size = QSize::new_2a(24, 24);
+        mode_icon.add_file_4a(&qs(":images/pin_grey.svg"), &size, Mode::Normal, State::Off);
+        //mode_icon.add_file_4a(&qs(":images/pin_white.svg"), &size, Mode::Normal, State::On);
+        mode_icon.add_file_4a(&qs(":images/pin_blue.svg"), &size, Mode::Active, State::On);
+
+        item.set_icon(&mode_icon);
     }
 }

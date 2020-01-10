@@ -3,7 +3,7 @@ use packybara::packrat::{Client, NoTls};
 use packybara::traits::*;
 use pbgui_tree::tree;
 use qt_core::QResource;
-use qt_widgets::{QApplication, QFrame, QMainWindow, QPushButton, QWidget};
+use qt_widgets::{QApplication, QFrame, QMainWindow};
 use rustqt_utils::{create_vlayout, qs};
 
 pub struct ClientProxy {}
@@ -28,7 +28,7 @@ fn main() {
         let main_widget_ptr = main_widget.as_mut_ptr();
 
         // main_layout
-        let mut main_layout = create_vlayout();
+        let main_layout = create_vlayout();
         //let  main_layout_ptr = main_layout.as_mut_ptr();
         main_widget.set_layout(main_layout.into_ptr());
         // set main_widget as the central widget in main_window

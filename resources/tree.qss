@@ -1,13 +1,24 @@
 QTreeView {
     background: rgb(40,40,40);
 }
-QTreeView::item:hover {
-        image: url(":images/pin_white.png");
+
+QTreeView::item::last:hover {
+        image: url(":images/pin_grey.png");
         qproperty-iconSize: 14px;
 
 }
-QTreeView::item:checked {
-        image: url(":images/pin_blue.png");
+QTreeView::item::last:pressed {
+        image: url(":images/pin_white.png");
         qproperty-iconSize: 14px;
+
+} 
+QTreeView::item::last:selected {
+        image: url(":images/pin_white.png");
+        qproperty-iconSize: 14px;
+
+} 
+
+QTreeView {
+        selection-background-color: rgb(40,40,40);
 
 }

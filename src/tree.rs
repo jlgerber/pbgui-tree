@@ -1,10 +1,10 @@
 use crate::api::{ClientProxy, PackratDb};
 use crate::inner_tree::InnerTreeView;
 use packybara::traits::*;
-use qt_core::{QModelIndex, SlotOfQModelIndex};
+use qt_core::{QAbstractItemModel, QModelIndex, SlotOfQModelIndex};
 use qt_gui::{QStandardItem, QStandardItemModel};
 use qt_widgets::{
-    cpp_core::{CastInto, MutPtr, Ref, StaticUpcast},
+    cpp_core::{CastInto, MutPtr, Ptr, Ref, StaticDowncast, StaticUpcast},
     QComboBox, QFrame, QLabel, QLayout, QWidget,
 };
 
@@ -63,14 +63,14 @@ impl<'a> DistributionTreeView<'a> {
             parent_widget.layout().add_widget(qframe.into_ptr());
 
             let cbox_p = Self::create_cbox(layout_ptr);
-
             let treeview = Rc::new(RefCell::new(InnerTreeView::create(qframe_ptr)));
+            let tv = treeview.clone();
             let dtv = DistributionTreeView {
                 view: treeview.clone(),
                 cbox: cbox_p,
                 // Slots
-                clicked: SlotOfQModelIndex::new(move |_idx: Ref<QModelIndex>| {
-                    //let parent = idx.parent();
+                clicked: SlotOfQModelIndex::new(move |idx: Ref<QModelIndex>| {
+                    tv.borrow_mut().clear_selection();
                 }),
 
                 expanded: SlotOfQModelIndex::new(
@@ -181,6 +181,16 @@ impl<'a> DistributionTreeView<'a> {
     /// * None
     pub fn clear_packages(&mut self) {
         self.view.borrow_mut().clear_packages();
+    }
+
+    pub fn clear_selection(&self) {
+        unsafe {
+            self.view
+                .borrow_mut()
+                .view
+                .selection_model()
+                .clear_selection();
+        }
     }
 
     /// Given a vector of a type that implements the ToQstringOwned trait, set the packages
