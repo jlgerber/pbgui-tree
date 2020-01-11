@@ -25,3 +25,11 @@ QTreeView {
         selection-background-color: rgb(40,40,40);
 
 }
+
+#PackageFilterFrame * {
+    margin: 5px;
+}
+
+#PackageFilter {
+    border-radius: 5px;
+}
