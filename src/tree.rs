@@ -8,7 +8,7 @@ use qt_widgets::{
     QComboBox, QFrame, QLabel, QLayout, QWidget,
 };
 
-use rustqt_utils::{create_hlayout, create_vlayout, qs, ToQStringOwned};
+use rustqt_utils::{create_hlayout, create_vlayout, qs, set_stylesheet_from_str, ToQStringOwned};
 use std::cell::RefCell;
 use std::rc::Rc;
 
