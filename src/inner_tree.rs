@@ -8,7 +8,7 @@ use qt_widgets::{
     cpp_core::{DynamicCast, MutPtr, StaticUpcast},
     q_abstract_item_view::EditTrigger,
     q_header_view::ResizeMode,
-    QTreeView, QWidget,
+    QLineEdit, QTreeView, QWidget,
 };
 use rustqt_utils::{qs, set_stylesheet_from_str, ToQStringOwned};
 const STYLE_STR: &'static str = include_str!("../resources/tree.qss");
@@ -16,6 +16,7 @@ const STYLE_STR: &'static str = include_str!("../resources/tree.qss");
 /// A struct holding the QTreeView and providing a simple Api, mirrored
 /// by the parent.
 pub struct InnerTreeView {
+    pub filter: MutPtr<QLineEdit>,
     pub view: MutPtr<QTreeView>,
 }
 
