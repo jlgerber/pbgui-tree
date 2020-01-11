@@ -715,7 +715,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "pbgui-tree"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "packybara 0.30.0 (git+https://github.com/jlgerber/packybara?tag=v0.30.0)",
