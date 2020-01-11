@@ -1,21 +1,22 @@
-use qt_core::QAbstractItemModel;
+use qt_core::{QAbstractItemModel, QSortFilterProxyModel};
 // use qt_gui::{
 //     q_icon::{Mode, State},
 //     QIcon,
 // };
 use qt_gui::{QStandardItem, QStandardItemModel};
 use qt_widgets::{
-    cpp_core::{DynamicCast, MutPtr, StaticUpcast},
+    cpp_core::{CppBox, DynamicCast, MutPtr, StaticUpcast},
     q_abstract_item_view::EditTrigger,
     q_header_view::ResizeMode,
-    QTreeView, QWidget,
+    QFrame, QLabel, QLineEdit, QTreeView, QWidget,
 };
-use rustqt_utils::{qs, set_stylesheet_from_str, ToQStringOwned};
+use rustqt_utils::{create_hlayout, qs, set_stylesheet_from_str, ToQStringOwned};
 const STYLE_STR: &'static str = include_str!("../resources/tree.qss");
 
 /// A struct holding the QTreeView and providing a simple Api, mirrored
 /// by the parent.
 pub struct InnerTreeView {
+    pub filter: MutPtr<QLineEdit>,
     pub view: MutPtr<QTreeView>,
 }
 
@@ -28,6 +29,9 @@ impl InnerTreeView {
     {
         unsafe {
             let parent_widget = parent_widget.static_upcast_mut();
+            let mut filter_frame = Self::new_qframe();
+            let filter = Self::new_filter(filter_frame.as_mut_ptr());
+            parent_widget.layout().add_widget(filter_frame.into_ptr());
             let mut treeview = QTreeView::new_0a();
             let mut treeview_ptr = treeview.as_mut_ptr();
             treeview_ptr.set_edit_triggers(EditTrigger::NoEditTriggers.into());
@@ -39,13 +43,24 @@ impl InnerTreeView {
 
             let mut model = QStandardItemModel::new_0a();
             model.set_column_count(2);
-            treeview_ptr.set_model(model.into_ptr());
+
+            let mut sort_model = QSortFilterProxyModel::new_0a();
+            filter
+                .text_changed()
+                .connect(sort_model.slot_set_filter_wildcard());
+            sort_model.set_source_model(model.into_ptr());
+
+            treeview_ptr.set_model(sort_model.into_ptr());
+
             treeview_ptr.header().resize_section(1, 20);
             treeview_ptr.header().set_stretch_last_section(false);
             treeview_ptr
                 .header()
                 .set_section_resize_mode_2a(0, ResizeMode::Stretch);
-            InnerTreeView { view: treeview_ptr }
+            InnerTreeView {
+                filter,
+                view: treeview_ptr,
+            }
         }
     }
 
@@ -61,7 +76,33 @@ impl InnerTreeView {
             if model.is_null() {
                 panic!("Unable to retrieve modelfrom model pointer obtained via view.model()");
             }
-            QAbstractItemModel::dynamic_cast_mut(model)
+            let cast_model: MutPtr<QSortFilterProxyModel> =
+                QAbstractItemModel::dynamic_cast_mut(model);
+            if cast_model.is_null() {
+                panic!("Unable to cast model from QAbstractFilterModel to QSortFilterProxyModel proxy from model pointer obtained via view.model()");
+            }
+            let cast_model: MutPtr<QStandardItemModel> =
+                QAbstractItemModel::dynamic_cast_mut(cast_model.source_model());
+            if cast_model.is_null() {
+                panic!("Unable to cast model from QSortProxyModel to QStandardItemModel from model pointer obtained via view.model()");
+            }
+            cast_model
+        }
+    }
+
+    /// Retreive the model from the view
+    pub fn proxy_model(&self) -> MutPtr<QSortFilterProxyModel> {
+        unsafe {
+            let model = self.view.model();
+            if model.is_null() {
+                panic!("Unable to retrieve modelfrom model pointer obtained via view.model()");
+            }
+            let cast_model: MutPtr<QSortFilterProxyModel> =
+                QAbstractItemModel::dynamic_cast_mut(model);
+            if cast_model.is_null() {
+                panic!("Unable to cast model from QAbstractFilterModel to QSortFilterProxyModel proxy from model pointer obtained via view.model()");
+            }
+            cast_model
         }
     }
 
@@ -171,6 +212,24 @@ impl InnerTreeView {
         }
     }
 
+    unsafe fn new_qframe() -> CppBox<QFrame> {
+        let mut qf = QFrame::new_0a();
+        qf.set_object_name(&qs("PackageFilterFrame"));
+        let layout = create_hlayout();
+        //let layout_ptr = layout.as_mut_ptr();
+        qf.set_layout(layout.into_ptr());
+        qf
+    }
+
+    unsafe fn new_filter(parent: MutPtr<QFrame>) -> MutPtr<QLineEdit> {
+        let label = QLabel::from_q_string(&qs("Package Filter"));
+        parent.layout().add_widget(label.into_ptr());
+        let mut qle = QLineEdit::new();
+        qle.set_object_name(&qs("PackageFilter"));
+        let qle_ptr = qle.as_mut_ptr();
+        parent.layout().add_widget(qle.into_ptr());
+        qle_ptr
+    }
     // unsafe fn set_icon(item: &mut MutPtr<QStandardItem>) {
     //     let mut mode_icon = QIcon::new();
     //     let size = QSize::new_2a(24, 24);

@@ -8,9 +8,11 @@ use qt_widgets::{
     QComboBox, QFrame, QLabel, QLayout, QWidget,
 };
 
-use rustqt_utils::{create_hlayout, create_vlayout, qs, ToQStringOwned};
+use rustqt_utils::{create_hlayout, create_vlayout, qs, set_stylesheet_from_str, ToQStringOwned};
 use std::cell::RefCell;
 use std::rc::Rc;
+
+const STYLE_STR: &'static str = include_str!("../resources/tree.qss");
 
 //makes it simpler to deal with the need to clone. Saw this here:
 // https://github.com/rust-webplatform/rust-todomvc/blob/master/src/main.rs#L142
@@ -24,6 +26,7 @@ macro_rules! enclose {
 }
 
 pub struct DistributionTreeView<'a> {
+    pub parent_frame: MutPtr<QFrame>,
     pub cbox: MutPtr<QComboBox>,
     pub view: Rc<RefCell<InnerTreeView>>,
     pub clicked: SlotOfQModelIndex<'a>,
@@ -66,6 +69,7 @@ impl<'a> DistributionTreeView<'a> {
             let treeview = Rc::new(RefCell::new(InnerTreeView::create(qframe_ptr)));
             let tv = treeview.clone();
             let dtv = DistributionTreeView {
+                parent_frame: qframe_ptr,
                 view: treeview.clone(),
                 cbox: cbox_p,
                 // Slots
@@ -75,18 +79,30 @@ impl<'a> DistributionTreeView<'a> {
 
                 expanded: SlotOfQModelIndex::new(
                     enclose! { (treeview) move |idx: Ref<QModelIndex>| {
+                        println!("retrieving model");
+                        let proxy_model = treeview.borrow().proxy_model();
                         let model = treeview.borrow().model();
-                        let row_cnt = model.row_count_1a(idx);
+                        println!("model retrieved");
+
+                        let row_cnt = proxy_model.row_count_1a(idx);
                         if  row_cnt > 1 { return; }
 
                         // what if we only have 1 item? Lets make sure that it isnt
                         // an intended child (eg a single version or platform)
                         let child = idx.child(0,0);
-                        if !child.is_valid() || model.item_from_index(child.as_ref()).text().to_std_string() != "" {
+                        println!("revrieving child item from index");
+
+                        if !child.is_valid() || model.item_from_index(
+                            proxy_model.map_to_source(child.as_ref()).as_mut_ref()
+                        ).text().to_std_string() != "" {
                             return;
                         }
+                        println!("retrieved child item from index");
 
-                        let item = model.item_from_index(idx);
+                        println!("revrieving item from index");
+                        let item = model.item_from_index(
+                            proxy_model.map_to_source(idx).as_mut_ref()
+                        );
                         let item_str = item.text().to_std_string();
 
                         let client = ClientProxy::connect().expect("Unable to connect via ClientProxy");
@@ -146,7 +162,7 @@ impl<'a> DistributionTreeView<'a> {
     /// # Returns
     /// *None
     pub fn set_default_stylesheet(&mut self) {
-        self.view.borrow_mut().set_default_stylesheet();
+        set_stylesheet_from_str(STYLE_STR, self.parent_frame);
     }
 
     /// Retreive the model from the view
