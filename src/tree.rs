@@ -12,6 +12,8 @@ use rustqt_utils::{create_hlayout, create_vlayout, qs, ToQStringOwned};
 use std::cell::RefCell;
 use std::rc::Rc;
 
+const STYLE_STR: &'static str = include_str!("../resources/tree.qss");
+
 //makes it simpler to deal with the need to clone. Saw this here:
 // https://github.com/rust-webplatform/rust-todomvc/blob/master/src/main.rs#L142
 macro_rules! enclose {
