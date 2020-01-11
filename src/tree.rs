@@ -146,7 +146,7 @@ impl<'a> DistributionTreeView<'a> {
     /// # Returns
     /// *None
     pub fn set_default_stylesheet(&mut self) {
-        self.view.borrow_mut().set_default_stylesheet();
+        set_stylesheet_from_str(STYLE_STR, self.parent_frame);
     }
 
     /// Retreive the model from the view
