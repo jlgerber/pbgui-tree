@@ -5,12 +5,12 @@ use qt_core::QAbstractItemModel;
 // };
 use qt_gui::{QStandardItem, QStandardItemModel};
 use qt_widgets::{
-    cpp_core::{DynamicCast, MutPtr, StaticUpcast},
+    cpp_core::{CppBox, DynamicCast, MutPtr, StaticUpcast},
     q_abstract_item_view::EditTrigger,
     q_header_view::ResizeMode,
-    QLineEdit, QTreeView, QWidget,
+    QFrame, QLabel, QLineEdit, QTreeView, QWidget,
 };
-use rustqt_utils::{qs, set_stylesheet_from_str, ToQStringOwned};
+use rustqt_utils::{create_hlayout, qs, set_stylesheet_from_str, ToQStringOwned};
 const STYLE_STR: &'static str = include_str!("../resources/tree.qss");
 
 /// A struct holding the QTreeView and providing a simple Api, mirrored
@@ -49,7 +49,10 @@ impl InnerTreeView {
             treeview_ptr
                 .header()
                 .set_section_resize_mode_2a(0, ResizeMode::Stretch);
-            InnerTreeView { view: treeview_ptr }
+            InnerTreeView {
+                filter,
+                view: treeview_ptr,
+            }
         }
     }
 
@@ -175,6 +178,24 @@ impl InnerTreeView {
         }
     }
 
+    unsafe fn new_qframe() -> CppBox<QFrame> {
+        let mut qf = QFrame::new_0a();
+        qf.set_object_name(&qs("PackageFilterFrame"));
+        let layout = create_hlayout();
+        //let layout_ptr = layout.as_mut_ptr();
+        qf.set_layout(layout.into_ptr());
+        qf
+    }
+
+    unsafe fn new_filter(parent: MutPtr<QFrame>) -> MutPtr<QLineEdit> {
+        let label = QLabel::from_q_string(&qs("Package Filter"));
+        parent.layout().add_widget(label.into_ptr());
+        let mut qle = QLineEdit::new();
+        qle.set_object_name(&qs("PackageFilter"));
+        let qle_ptr = qle.as_mut_ptr();
+        parent.layout().add_widget(qle.into_ptr());
+        qle_ptr
+    }
     // unsafe fn set_icon(item: &mut MutPtr<QStandardItem>) {
     //     let mut mode_icon = QIcon::new();
     //     let size = QSize::new_2a(24, 24);
