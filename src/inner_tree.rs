@@ -31,6 +31,9 @@ impl InnerTreeView {
             let parent_widget = parent_widget.static_upcast_mut();
             let mut treeview = QTreeView::new_0a();
             let mut treeview_ptr = treeview.as_mut_ptr();
+            let mut filter_frame = Self::new_qframe();
+            let filter = Self::new_filter(filter_frame.as_mut_ptr());
+            parent_widget.layout().add_widget(filter_frame.into_ptr());
             treeview_ptr.set_edit_triggers(EditTrigger::NoEditTriggers.into());
             treeview_ptr.set_root_is_decorated(true);
             treeview_ptr.set_items_expandable(true);
