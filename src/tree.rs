@@ -26,6 +26,7 @@ macro_rules! enclose {
 }
 
 pub struct DistributionTreeView<'a> {
+    pub parent_frame: MutPtr<QFrame>,
     pub cbox: MutPtr<QComboBox>,
     pub view: Rc<RefCell<InnerTreeView>>,
     pub clicked: SlotOfQModelIndex<'a>,
@@ -68,6 +69,7 @@ impl<'a> DistributionTreeView<'a> {
             let treeview = Rc::new(RefCell::new(InnerTreeView::create(qframe_ptr)));
             let tv = treeview.clone();
             let dtv = DistributionTreeView {
+                parent_frame: qframe_ptr,
                 view: treeview.clone(),
                 cbox: cbox_p,
                 // Slots
