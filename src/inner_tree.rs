@@ -8,7 +8,7 @@ use qt_widgets::{
     cpp_core::{DynamicCast, MutPtr, StaticUpcast},
     q_abstract_item_view::EditTrigger,
     q_header_view::ResizeMode,
-    QAbstractItemView, QTreeView, QWidget,
+    QTreeView, QWidget,
 };
 use rustqt_utils::{qs, set_stylesheet_from_str, ToQStringOwned};
 const STYLE_STR: &'static str = include_str!("../resources/tree.qss");
