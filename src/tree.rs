@@ -1,14 +1,14 @@
 use crate::api::{ClientProxy, PackratDb};
 use crate::inner_tree::InnerTreeView;
 use packybara::traits::*;
-use qt_core::{QModelIndex, QSize, SlotOfQModelIndex};
+use qt_core::{QModelIndex, QSize, SlotOfBool, SlotOfQModelIndex};
 use qt_gui::{
     q_icon::{Mode, State},
     QIcon, QStandardItem, QStandardItemModel,
 };
 use qt_widgets::{
     cpp_core::{CastInto, MutPtr, Ref, StaticUpcast},
-    QCheckBox, QComboBox, QFrame, QLabel, QLayout, QPushButton, QWidget,
+    QComboBox, QFrame, QLabel, QLayout, QPushButton, QWidget,
 };
 
 use rustqt_utils::{create_hlayout, create_vlayout, qs, set_stylesheet_from_str, ToQStringOwned};
@@ -36,6 +36,7 @@ pub struct DistributionTreeView<'a> {
     pub clicked: SlotOfQModelIndex<'a>,
     pub expanded: SlotOfQModelIndex<'a>,
     pub collapsed: SlotOfQModelIndex<'a>,
+    pub filter_visible: SlotOfBool<'a>,
 }
 
 // filter using is any
@@ -136,13 +137,16 @@ impl<'a> DistributionTreeView<'a> {
                         }
                     }},
                 ),
+                filter_visible: SlotOfBool::new(enclose! { (treeview) move |vis: bool| {
+                    treeview.borrow_mut().set_filter_visibility(vis);
+                }}),
             };
 
             // Set up signals & slots
             treeview.borrow().view.clicked().connect(&dtv.clicked);
             treeview.borrow().view.expanded().connect(&dtv.expanded);
             treeview.borrow().view.collapsed().connect(&dtv.collapsed);
-
+            dtv.filter_cb.toggled().connect(&dtv.filter_visible);
             dtv
         }
     }

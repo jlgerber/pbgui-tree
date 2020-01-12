@@ -13,6 +13,7 @@ use rustqt_utils::{create_hlayout, qs, ToQStringOwned};
 /// A struct holding the QTreeView and providing a simple Api, mirrored
 /// by the parent.
 pub struct InnerTreeView<'a> {
+    pub filter_frame: MutPtr<QFrame>,
     pub filter: MutPtr<QLineEdit>,
     pub view: MutPtr<QTreeView>,
     pub filter_slot: SlotOfQString<'a>,
@@ -30,7 +31,8 @@ impl<'a> InnerTreeView<'a> {
             let mut treeview = QTreeView::new_0a();
             let mut treeview_ptr = treeview.as_mut_ptr();
             let mut filter_frame = Self::new_qframe();
-            let filter = Self::new_filter(filter_frame.as_mut_ptr());
+            let mut filter_frame_ptr = filter_frame.as_mut_ptr();
+            let filter = Self::new_filter(filter_frame_ptr);
             parent_widget.layout().add_widget(filter_frame.into_ptr());
             treeview_ptr.set_edit_triggers(EditTrigger::NoEditTriggers.into());
             treeview_ptr.set_root_is_decorated(true);
@@ -50,6 +52,7 @@ impl<'a> InnerTreeView<'a> {
                 .set_section_resize_mode_2a(0, ResizeMode::Stretch);
 
             let itv = InnerTreeView {
+                filter_frame: filter_frame_ptr,
                 filter,
                 view: treeview_ptr.clone(),
                 filter_slot: SlotOfQString::new(move |new_str: Ref<QString>| {
@@ -197,6 +200,13 @@ impl<'a> InnerTreeView<'a> {
     pub fn clear_selection(&self) {
         unsafe {
             self.view.selection_model().clear_selection();
+        }
+    }
+
+    /// turn visibility of frame off and on
+    pub fn set_filter_visibility(&mut self, visible: bool) {
+        unsafe {
+            self.filter_frame.set_visible(visible);
         }
     }
 
