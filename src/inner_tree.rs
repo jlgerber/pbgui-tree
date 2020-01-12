@@ -34,6 +34,9 @@ impl<'a> InnerTreeView<'a> {
             let mut filter_frame_ptr = filter_frame.as_mut_ptr();
             let filter = Self::new_filter(filter_frame_ptr);
             parent_widget.layout().add_widget(filter_frame.into_ptr());
+
+            filter_frame_ptr.set_visible(false);
+
             treeview_ptr.set_edit_triggers(EditTrigger::NoEditTriggers.into());
             treeview_ptr.set_root_is_decorated(true);
             treeview_ptr.set_items_expandable(true);
