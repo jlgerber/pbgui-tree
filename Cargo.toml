@@ -1,6 +1,6 @@
 [package]
 name = "pbgui-tree"
-version = "0.6.0"
+version = "0.6.1"
 authors = ["jlgerber <jlgerber@gmail.com>"]
 edition = "2018"
 
@@ -10,6 +10,6 @@ qt_gui = "0.4.1"
 qt_widgets = "0.4.1"
 qt_ui_tools = "0.4.1"
 log = "0.4.8"
-packybara = {git= "https://github.com/jlgerber/packybara", tag="v0.30.0"}
+packybara = {git= "https://github.com/jlgerber/packybara", tag="v0.31.1"}
 qt_thread_conductor = {git= "https://github.com/jlgerber/rust-qt-conductor", tag="v0.3.0"}
 rustqt-utils = {git="https://github.com/jlgerber/rustqt-utils", tag="v0.4.0"}
