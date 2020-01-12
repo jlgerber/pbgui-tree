@@ -1,8 +1,5 @@
 use qt_core::{QAbstractItemModel, QModelIndex, QString, SlotOfQString, WidgetAttribute};
-// use qt_gui::{
-//     q_icon::{Mode, State},
-//     QIcon,
-// };
+use qt_gui::QIcon;
 use qt_gui::{QStandardItem, QStandardItemModel};
 use qt_widgets::{
     cpp_core::{CppBox, DynamicCast, MutPtr, Ref, StaticUpcast},
@@ -125,10 +122,12 @@ impl<'a> InnerTreeView<'a> {
             //model.clear(); // this removes columns as well. and segfaults
             let row_cnt = inputs.len() as i32;
             //
+            let icon = QIcon::from_q_string(&QString::from_std_str(":/images/package_md.png"));
             for input in inputs {
                 let mut item = QStandardItem::new();
                 let txt = input.to_qstring();
                 item.set_text(&txt);
+                item.set_icon(&icon);
                 item.set_editable(false);
                 // add one fake item to force qt to draw a
                 let mut child = QStandardItem::new();

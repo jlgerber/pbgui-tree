@@ -285,13 +285,15 @@ impl<'a> DistributionTreeView<'a> {
         unsafe {
             // combo_box
             let mut horiz_frame = QFrame::new_0a();
+            horiz_frame.set_object_name(&qs("SitesCBFrame"));
             let mut h_layout = create_hlayout();
             let mut h_layout_p = h_layout.as_mut_ptr();
             horiz_frame.set_layout(h_layout.into_ptr());
 
-            h_layout_p.add_stretch_1a(1);
-            let site_l = QLabel::from_q_string(&qs("Site"));
+            let mut site_l = QLabel::from_q_string(&qs("Site"));
+            site_l.set_object_name(&qs("SiteLabel"));
             h_layout_p.add_widget(site_l.into_ptr());
+            h_layout_p.add_stretch_1a(1);
 
             let mut cbox = QComboBox::new_0a();
             let cbox_p = cbox.as_mut_ptr();
