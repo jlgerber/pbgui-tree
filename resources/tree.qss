@@ -1,31 +1,32 @@
-QTreeView {
+QTreeView#PackageTreeView {
     background: rgb(40,40,40);
     margin: 5px;
     padding-right: 5px;
     padding-left: 5px;
+    selection-background-color: rgb(40,40,40);
 }
 
-QTreeView::item::last:hover {
+QTreeView#PackageTreeView::item::last:hover {
         image: url(":images/pin_white.png");
         qproperty-iconSize: 14px;
 
 }
 
-QTreeView::item::last:pressed {
+QTreeView#PackageTreeView::item::last:pressed {
         image: url(":images/pin_blue.png");
         qproperty-iconSize: 14px;
 
 } 
 
-QTreeView::item::last:selected {
+QTreeView#PackageTreeView::item::last:selected {
         image: url(":images/pin_blue.png");
         qproperty-iconSize: 14px;
 
 } 
-
-QTreeView {
+/* 
+QTreeView#PackageTreeView {
     selection-background-color: rgb(40,40,40);
-}
+} */
 
 QFrame#PackageFilterFrame {
     padding-top: 5px;
@@ -56,7 +57,7 @@ QLabel#SiteLabel {
   border-top: none;
   border-bottom:none;
 }
-QComboBox {
+QComboBox#SiteComboBox {
     border: none;
     border-right: 1px solid rgb(130,130,130);
     border-radius: 3px;
@@ -66,16 +67,16 @@ QComboBox {
     background: rgb(40,40,40);
 }
 
-QComboBox:on { /* shift the text when the popup opens */
+QComboBox#SiteComboBox:on { /* shift the text when the popup opens */
     padding-top: 3px;
     padding-left: 4px;
 }
 
-QComboBox:disabled {
+QComboBox#SiteComboBox:disabled {
     background:rgb(40,40,40);
 }
 
-QComboBox::drop-down {
+QComboBox#SiteComboBox::drop-down {
     subcontrol-origin: padding;
     subcontrol-position: top right;
     width: 20px;
@@ -85,7 +86,7 @@ QComboBox::drop-down {
     border:none;
 }
 
-QComboBox::down-arrow {
+QComboBox#SiteComboBox::down-arrow {
     color: white;
     image: url(:/images/dropdown.png);
     width: 10px;

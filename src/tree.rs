@@ -312,6 +312,7 @@ impl<'a> DistributionTreeView<'a> {
 
             let mut cbox = QComboBox::new_0a();
             let cbox_p = cbox.as_mut_ptr();
+            cbox.set_object_name(&qs("SiteComboBox"));
             h_layout_p.add_widget(cbox.into_ptr());
 
             let mut filter_btn = QPushButton::new();

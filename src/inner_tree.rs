@@ -29,6 +29,7 @@ impl<'a> InnerTreeView<'a> {
         unsafe {
             let parent_widget = parent_widget.static_upcast_mut();
             let mut treeview = QTreeView::new_0a();
+            treeview.set_object_name(&qs("PackageTreeView"));
             let mut treeview_ptr = treeview.as_mut_ptr();
             let mut filter_frame = Self::new_qframe();
             let mut filter_frame_ptr = filter_frame.as_mut_ptr();
