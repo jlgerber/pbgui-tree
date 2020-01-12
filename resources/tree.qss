@@ -47,15 +47,22 @@ QFrame#SitesCBFrame {
 
 QLabel#SiteLabel {
   padding-left: 15px;
+  /*
+  Seems to be a QT bug. If i try and simply set border-left: 1px solid rgb(130,130,130); 
+  it doesnt show up. have to set border and then turn off the top, bottom, and right.
+  */
+  border: 1px solid rgb(130,130,130);
+  border-right: none;
+  border-top: none;
+  border-bottom:none;
 }
 QComboBox {
     border: none;
     border-radius: 3px;
     padding: 1px 18px 1px 3px;
-    /* min-width: 6em; */
-    /* border-top-left-radius: 6px;
-    border-bottom-left-radius: 6px; */
     height:30px;
+    padding-left: 20px;
+    background: rgb(40,40,40);
 }
 
 QComboBox:on { /* shift the text when the popup opens */
@@ -71,7 +78,6 @@ QComboBox::drop-down {
     subcontrol-origin: padding;
     subcontrol-position: top right;
     width: 20px;
-    /* background: rgb(60,60,60); */
     background: transparent;
     border-top-right-radius: 6px;
     border-bottom-right-radius: 6px;

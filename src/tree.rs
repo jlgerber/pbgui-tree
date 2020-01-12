@@ -292,8 +292,8 @@ impl<'a> DistributionTreeView<'a> {
 
             let mut site_l = QLabel::from_q_string(&qs("Site"));
             site_l.set_object_name(&qs("SiteLabel"));
-            h_layout_p.add_widget(site_l.into_ptr());
             h_layout_p.add_stretch_1a(1);
+            h_layout_p.add_widget(site_l.into_ptr());
 
             let mut cbox = QComboBox::new_0a();
             let cbox_p = cbox.as_mut_ptr();

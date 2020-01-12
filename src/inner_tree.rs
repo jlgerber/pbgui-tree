@@ -93,10 +93,12 @@ impl<'a> InnerTreeView<'a> {
     pub fn add_package<T: ToQStringOwned>(&mut self, input: T) {
         unsafe {
             let mut model = self.model();
+            let icon = QIcon::from_q_string(&QString::from_std_str(":/images/package_md.png"));
             let row_count = model.row_count_0a();
             let mut parent = model.invisible_root_item();
             let mut item = QStandardItem::new();
             item.set_text(&input.to_qstring());
+            item.set_icon(&icon);
             item.set_editable(false);
             parent.append_row_q_standard_item(item.into_ptr());
             model.set_row_count(row_count + 1);
