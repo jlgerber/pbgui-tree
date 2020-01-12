@@ -70,14 +70,15 @@ impl<'a> DistributionTreeView<'a> {
             let parent_widget = parent_widget.static_upcast_mut();
             parent_widget.layout().add_widget(qframe.into_ptr());
 
-            let (cbox_p, checkbox) = Self::create_cbox(layout_ptr);
+            let (cbox_p, filter_btn) = Self::create_cbox(layout_ptr);
             let treeview = Rc::new(RefCell::new(InnerTreeView::create(qframe_ptr)));
             let tv = treeview.clone();
+
             let dtv = DistributionTreeView {
                 parent_frame: qframe_ptr,
                 view: treeview.clone(),
                 cbox: cbox_p,
-                filter_cb: checkbox,
+                filter_cb: filter_btn,
                 // Slots
                 clicked: SlotOfQModelIndex::new(move |_idx: Ref<QModelIndex>| {
                     tv.borrow_mut().clear_selection();
@@ -313,10 +314,11 @@ impl<'a> DistributionTreeView<'a> {
             let cbox_p = cbox.as_mut_ptr();
             h_layout_p.add_widget(cbox.into_ptr());
 
-            let mut checkbox = QPushButton::new();
-            let checkbox_ptr = checkbox.as_mut_ptr();
-            checkbox.set_object_name(&qs("packageFilterCheckbox"));
-            checkbox.set_checkable(true);
+            let mut filter_btn = QPushButton::new();
+            let filter_btn_ptr = filter_btn.as_mut_ptr();
+            filter_btn.set_object_name(&qs("packageFilterCheckbox"));
+            filter_btn.set_checkable(true);
+            filter_btn.set_tool_tip(&qs("Display the Package filter control"));
             let mut icon = QIcon::new();
             icon.add_file_2a(
                 &qs(":/images/filter_white_sm.svg"),
@@ -328,11 +330,11 @@ impl<'a> DistributionTreeView<'a> {
                 Mode::Normal,
                 State::On,
             );
-            checkbox.set_icon(&icon);
-            h_layout_p.add_widget(checkbox.into_ptr());
+            filter_btn.set_icon(&icon);
+            h_layout_p.add_widget(filter_btn.into_ptr());
             layout.cast_into().add_widget(horiz_frame.into_ptr());
 
-            (cbox_p, checkbox_ptr)
+            (cbox_p, filter_btn_ptr)
         }
     }
 }
