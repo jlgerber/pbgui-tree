@@ -1,29 +1,30 @@
-use qt_core::QAbstractItemModel;
+use qt_core::{QAbstractItemModel, QModelIndex, QString, SlotOfQString, WidgetAttribute};
 // use qt_gui::{
 //     q_icon::{Mode, State},
 //     QIcon,
 // };
 use qt_gui::{QStandardItem, QStandardItemModel};
 use qt_widgets::{
-    cpp_core::{CppBox, DynamicCast, MutPtr, StaticUpcast},
+    cpp_core::{CppBox, DynamicCast, MutPtr, Ref, StaticUpcast},
     q_abstract_item_view::EditTrigger,
     q_header_view::ResizeMode,
     QFrame, QLabel, QLineEdit, QTreeView, QWidget,
 };
-use rustqt_utils::{create_hlayout, qs, set_stylesheet_from_str, ToQStringOwned};
-const STYLE_STR: &'static str = include_str!("../resources/tree.qss");
+
+use rustqt_utils::{create_hlayout, qs, ToQStringOwned};
 
 /// A struct holding the QTreeView and providing a simple Api, mirrored
 /// by the parent.
-pub struct InnerTreeView {
+pub struct InnerTreeView<'a> {
     pub filter: MutPtr<QLineEdit>,
     pub view: MutPtr<QTreeView>,
+    pub filter_slot: SlotOfQString<'a>,
 }
 
-impl InnerTreeView {
+impl<'a> InnerTreeView<'a> {
     /// create an InnerTreeView instance. This inner tree allows us
     /// to use the tree's api in Slots exposed by the parent
-    pub fn create<T>(parent_widget: MutPtr<T>) -> InnerTreeView
+    pub fn create<T>(parent_widget: MutPtr<T>) -> InnerTreeView<'a>
     where
         T: StaticUpcast<QWidget>,
     {
@@ -43,22 +44,41 @@ impl InnerTreeView {
 
             let mut model = QStandardItemModel::new_0a();
             model.set_column_count(2);
+            let model_ptr = model.as_mut_ptr();
             treeview_ptr.set_model(model.into_ptr());
             treeview_ptr.header().resize_section(1, 20);
             treeview_ptr.header().set_stretch_last_section(false);
             treeview_ptr
                 .header()
                 .set_section_resize_mode_2a(0, ResizeMode::Stretch);
-            InnerTreeView {
-                filter,
-                view: treeview_ptr,
-            }
-        }
-    }
 
-    /// Set the stylesheet to the internal stylesheet
-    pub fn set_default_stylesheet(&mut self) {
-        set_stylesheet_from_str(STYLE_STR, self.view);
+            let itv = InnerTreeView {
+                filter,
+                view: treeview_ptr.clone(),
+                filter_slot: SlotOfQString::new(move |new_str: Ref<QString>| {
+                    let root = QModelIndex::new();
+                    if new_str.to_std_string() == "" {
+                        for cnt in (0..model_ptr.row_count_0a()).rev() {
+                            treeview_ptr.set_row_hidden(cnt, root.as_ref(), false)
+                        }
+                    } else {
+                        for cnt in (0..model_ptr.row_count_0a()).rev() {
+                            let item = model_ptr.item_2a(cnt, 0);
+                            let txt = item.text();
+                            if txt.contains_q_string(new_str) {
+                                treeview_ptr.set_row_hidden(cnt, root.as_ref(), false)
+                            } else {
+                                treeview_ptr.set_row_hidden(cnt, root.as_ref(), true)
+                            }
+                        }
+                    }
+                }),
+            };
+
+            itv.filter.text_changed().connect(&itv.filter_slot);
+
+            itv
+        }
     }
 
     /// Retreive the model from the view
@@ -86,6 +106,7 @@ impl InnerTreeView {
         }
     }
 
+    /// Clear the package list from the model
     pub fn clear_packages(&mut self) {
         unsafe {
             let mut model = self.model();
@@ -182,7 +203,6 @@ impl InnerTreeView {
         let mut qf = QFrame::new_0a();
         qf.set_object_name(&qs("PackageFilterFrame"));
         let layout = create_hlayout();
-        //let layout_ptr = layout.as_mut_ptr();
         qf.set_layout(layout.into_ptr());
         qf
     }
@@ -191,17 +211,10 @@ impl InnerTreeView {
         let label = QLabel::from_q_string(&qs("Package Filter"));
         parent.layout().add_widget(label.into_ptr());
         let mut qle = QLineEdit::new();
+        qle.set_attribute_2a(WidgetAttribute::WAMacShowFocusRect, false);
         qle.set_object_name(&qs("PackageFilter"));
         let qle_ptr = qle.as_mut_ptr();
         parent.layout().add_widget(qle.into_ptr());
         qle_ptr
     }
-    // unsafe fn set_icon(item: &mut MutPtr<QStandardItem>) {
-    //     let mut mode_icon = QIcon::new();
-    //     let size = QSize::new_2a(24, 24);
-    //     mode_icon.add_file_4a(&qs(":images/pin_grey.svg"), &size, Mode::Normal, State::Off);
-    //     mode_icon.add_file_4a(&qs(":images/pin_blue.svg"), &size, Mode::Active, State::On);
-
-    //     item.set_icon(&mode_icon);
-    // }
 }

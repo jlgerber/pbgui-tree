@@ -28,7 +28,7 @@ macro_rules! enclose {
 pub struct DistributionTreeView<'a> {
     pub parent_frame: MutPtr<QFrame>,
     pub cbox: MutPtr<QComboBox>,
-    pub view: Rc<RefCell<InnerTreeView>>,
+    pub view: Rc<RefCell<InnerTreeView<'a>>>,
     pub clicked: SlotOfQModelIndex<'a>,
     pub expanded: SlotOfQModelIndex<'a>,
     pub collapsed: SlotOfQModelIndex<'a>,
