@@ -1,11 +1,14 @@
 use crate::api::{ClientProxy, PackratDb};
 use crate::inner_tree::InnerTreeView;
 use packybara::traits::*;
-use qt_core::{QModelIndex, SlotOfQModelIndex};
-use qt_gui::{QStandardItem, QStandardItemModel};
+use qt_core::{QModelIndex, QSize, SlotOfQModelIndex};
+use qt_gui::{
+    q_icon::{Mode, State},
+    QIcon, QStandardItem, QStandardItemModel,
+};
 use qt_widgets::{
     cpp_core::{CastInto, MutPtr, Ref, StaticUpcast},
-    QComboBox, QFrame, QLabel, QLayout, QWidget,
+    QCheckBox, QComboBox, QFrame, QLabel, QLayout, QPushButton, QWidget,
 };
 
 use rustqt_utils::{create_hlayout, create_vlayout, qs, set_stylesheet_from_str, ToQStringOwned};
@@ -28,6 +31,7 @@ macro_rules! enclose {
 pub struct DistributionTreeView<'a> {
     pub parent_frame: MutPtr<QFrame>,
     pub cbox: MutPtr<QComboBox>,
+    pub filter_cb: MutPtr<QPushButton>,
     pub view: Rc<RefCell<InnerTreeView<'a>>>,
     pub clicked: SlotOfQModelIndex<'a>,
     pub expanded: SlotOfQModelIndex<'a>,
@@ -65,13 +69,14 @@ impl<'a> DistributionTreeView<'a> {
             let parent_widget = parent_widget.static_upcast_mut();
             parent_widget.layout().add_widget(qframe.into_ptr());
 
-            let cbox_p = Self::create_cbox(layout_ptr);
+            let (cbox_p, checkbox) = Self::create_cbox(layout_ptr);
             let treeview = Rc::new(RefCell::new(InnerTreeView::create(qframe_ptr)));
             let tv = treeview.clone();
             let dtv = DistributionTreeView {
                 parent_frame: qframe_ptr,
                 view: treeview.clone(),
                 cbox: cbox_p,
+                filter_cb: checkbox,
                 // Slots
                 clicked: SlotOfQModelIndex::new(move |_idx: Ref<QModelIndex>| {
                     tv.borrow_mut().clear_selection();
@@ -278,7 +283,7 @@ impl<'a> DistributionTreeView<'a> {
         }
     }
 
-    fn create_cbox<I>(layout: I) -> MutPtr<QComboBox>
+    fn create_cbox<I>(layout: I) -> (MutPtr<QComboBox>, MutPtr<QPushButton>)
     where
         I: CastInto<MutPtr<QLayout>>,
     {
@@ -292,16 +297,38 @@ impl<'a> DistributionTreeView<'a> {
 
             let mut site_l = QLabel::from_q_string(&qs("Site"));
             site_l.set_object_name(&qs("SiteLabel"));
+            let mut icon = QIcon::new();
+            icon.add_file_2a(&qs(":/images/world.svg"), QSize::new_2a(12, 12).as_ref());
+            let pixmap = icon.pixmap_int(12);
+            site_l.set_pixmap(&pixmap);
             h_layout_p.add_stretch_1a(1);
+
             h_layout_p.add_widget(site_l.into_ptr());
 
             let mut cbox = QComboBox::new_0a();
             let cbox_p = cbox.as_mut_ptr();
             h_layout_p.add_widget(cbox.into_ptr());
 
+            let mut checkbox = QPushButton::new();
+            let checkbox_ptr = checkbox.as_mut_ptr();
+            checkbox.set_object_name(&qs("packageFilterCheckbox"));
+            checkbox.set_checkable(true);
+            let mut icon = QIcon::new();
+            icon.add_file_2a(
+                &qs(":/images/filter_white_sm.svg"),
+                QSize::new_2a(10, 10).as_ref(),
+            );
+            icon.add_file_4a(
+                &qs(":/images/filter_blue_sm.svg"),
+                QSize::new_2a(10, 10).as_ref(),
+                Mode::Normal,
+                State::On,
+            );
+            checkbox.set_icon(&icon);
+            h_layout_p.add_widget(checkbox.into_ptr());
             layout.cast_into().add_widget(horiz_frame.into_ptr());
 
-            cbox_p
+            (cbox_p, checkbox_ptr)
         }
     }
 }
