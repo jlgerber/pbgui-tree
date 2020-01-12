@@ -48,7 +48,7 @@ fn main() {
         let sites = sites.iter().map(|s| s.name.as_str()).collect::<Vec<_>>();
 
         mytree.set_packages(results);
-        mytree.set_cb_items(sites, "portland");
+        mytree.set_sites(sites, "portland");
         main_window.show();
         QApplication::exec()
     });

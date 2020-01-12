@@ -225,19 +225,19 @@ impl<'a> DistributionTreeView<'a> {
     }
 
     #[allow(dead_code)]
-    /// Set comboboc items, replacing any extant items
+    /// Set combobox sites, replacing any extant sites
     ///
     /// # Arguments
     /// * `items` - Vector of items
     ///
     /// # Returns
     /// * None
-    pub fn set_cb_items<'c, I>(&mut self, items: Vec<I>, current: I)
+    pub fn set_sites<'c, I>(&mut self, items: Vec<I>, current: I)
     where
         I: AsRef<str>,
     {
         unsafe {
-            self.remove_cb_items();
+            self.remove_sites();
             let mut idx = 0;
             let mut cnt = 0;
             for item in items {
@@ -252,13 +252,13 @@ impl<'a> DistributionTreeView<'a> {
     }
 
     #[allow(dead_code)]
-    /// Remove all items from the combobox
+    /// Remove all sites from the combobox
     ///
     /// # Arguments
     /// * None
     ///
     /// # Returns None
-    pub fn remove_cb_items(&mut self) {
+    pub fn remove_sites(&mut self) {
         unsafe {
             self.cbox.clear();
         }
