@@ -1,6 +1,6 @@
 [package]
 name = "pbgui-tree"
-version = "0.6.1"
+version = "0.7.0"
 authors = ["jlgerber <jlgerber@gmail.com>"]
 edition = "2018"
 
