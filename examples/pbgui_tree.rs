@@ -34,7 +34,8 @@ fn main() {
         // set main_widget as the central widget in main_window
         main_window.set_central_widget(main_widget.into_ptr());
 
-        let mut mytree = tree::DistributionTreeView::create(main_widget_ptr);
+        let mytree = tree::DistributionTreeView::create(main_widget_ptr);
+
         mytree.set_default_stylesheet();
         mytree.set_packages(vec!["foo", "bar", "bla"]);
 
