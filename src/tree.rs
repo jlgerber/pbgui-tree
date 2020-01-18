@@ -11,22 +11,13 @@ use qt_widgets::{
     QComboBox, QFrame, QLabel, QLayout, QPushButton, QWidget,
 };
 
-use rustqt_utils::{create_hlayout, create_vlayout, qs, set_stylesheet_from_str, ToQStringOwned};
+use rustqt_utils::{
+    create_hlayout, create_vlayout, enclose, qs, set_stylesheet_from_str, ToQStringOwned,
+};
 use std::cell::RefCell;
 use std::rc::Rc;
 
 const STYLE_STR: &'static str = include_str!("../resources/tree.qss");
-
-//makes it simpler to deal with the need to clone. Saw this here:
-// https://github.com/rust-webplatform/rust-todomvc/blob/master/src/main.rs#L142
-macro_rules! enclose {
-    ( ($(  $x:ident ),*) $y:expr ) => {
-        {
-            $(let $x = $x.clone();)*
-            $y
-        }
-    };
-}
 
 pub struct DistributionTreeView<'a> {
     pub parent_frame: MutPtr<QFrame>,
