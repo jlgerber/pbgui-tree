@@ -1,7 +1,7 @@
 use crate::api::{ClientProxy, PackratDb};
 use crate::inner_tree::InnerTreeView;
 use packybara::traits::*;
-use qt_core::{QModelIndex, SlotOfBool, SlotOfQModelIndex};
+use qt_core::{QModelIndex, QString, SlotOfBool, SlotOfQModelIndex, SlotOfQString};
 use qt_gui::{QStandardItem, QStandardItemModel};
 use qt_widgets::{
     cpp_core::{MutPtr, Ref, StaticUpcast},
@@ -15,11 +15,12 @@ use std::rc::Rc;
 /// per site, along with a set of signals/slots that handle expanding &
 /// collapsing components
 pub struct DistributionTreeView<'a> {
-    pub view: Rc<InnerTreeView<'a>>,
-    pub clicked: SlotOfQModelIndex<'a>,
-    pub expanded: SlotOfQModelIndex<'a>,
-    pub collapsed: SlotOfQModelIndex<'a>,
-    pub filter_visible: SlotOfBool<'a>,
+    view: Rc<InnerTreeView>,
+    clicked: SlotOfQModelIndex<'a>,
+    expanded: SlotOfQModelIndex<'a>,
+    collapsed: SlotOfQModelIndex<'a>,
+    filter_visible: SlotOfBool<'a>,
+    filter_slot: SlotOfQString<'a>,
 }
 
 // filter using is any
@@ -47,7 +48,25 @@ impl<'a> DistributionTreeView<'a> {
             let treeview = Rc::new(InnerTreeView::create(parent_widget));
 
             let tv = treeview.clone();
-
+            let filter_slot =
+                SlotOfQString::new(enclose! { (treeview) move |new_str: Ref<QString>| {
+                    let model_ptr = treeview.model();
+                    if new_str.to_std_string() == "" {
+                        for cnt in (0..model_ptr.row_count_0a()).rev() {
+                            treeview.set_row_hidden(cnt,  false)
+                        }
+                    } else {
+                        for cnt in (0..model_ptr.row_count_0a()).rev() {
+                            let item = model_ptr.item_2a(cnt, 0);
+                            let txt = item.text();
+                            if txt.contains_q_string(new_str) {
+                                treeview.set_row_hidden(cnt, false)
+                            } else {
+                                treeview.set_row_hidden(cnt, true)
+                            }
+                        }
+                    }
+                }});
             let dtv = DistributionTreeView {
                 view: treeview.clone(),
                 // Slots
@@ -105,26 +124,28 @@ impl<'a> DistributionTreeView<'a> {
                 collapsed: SlotOfQModelIndex::new(
                     enclose! { (treeview) move |idx: Ref<QModelIndex>| {
                         if treeview.model().row_count_1a(idx) == 1 {
-                            treeview.set_row_hidden(idx, false);
+                            treeview.set_row_hidden(idx.row(), false);
                         }
                     }},
                 ),
                 filter_visible: SlotOfBool::new(enclose! { (treeview) move |vis: bool| {
                     treeview.set_filter_visibility(vis);
                 }}),
+                filter_slot,
             };
 
             // Set up signals & slots
-            treeview.view.clicked().connect(&dtv.clicked);
-            treeview.view.expanded().connect(&dtv.expanded);
-            treeview.view.collapsed().connect(&dtv.collapsed);
+            treeview.view().clicked().connect(&dtv.clicked);
+            treeview.view().expanded().connect(&dtv.expanded);
+            treeview.view().collapsed().connect(&dtv.collapsed);
+            treeview.filter().text_changed().connect(&dtv.filter_slot);
+
             dtv.filter_check_box()
                 .toggled()
                 .connect(&dtv.filter_visible);
             dtv
         }
     }
-
     /// Retrieve the Filter button (which is acting as a checkbox)
     ///
     /// # Arguments
@@ -142,7 +163,7 @@ impl<'a> DistributionTreeView<'a> {
     /// * None
     ///
     /// # Returns
-    /// *None
+    /// * None
     pub fn set_default_stylesheet(&self) {
         self.view.set_default_stylesheet();
     }
@@ -241,7 +262,7 @@ impl<'a> DistributionTreeView<'a> {
     /// * None
     ///
     /// # Returns None
-    pub fn remove_sites(&mut self) {
+    pub fn remove_sites(&self) {
         self.view.remove_sites();
     }
 
@@ -253,7 +274,7 @@ impl<'a> DistributionTreeView<'a> {
     ///
     /// # Returns
     /// * None
-    pub fn set_cb_max_visible_items(&mut self, max: i32) {
+    pub fn set_cb_max_visible_items(&self, max: i32) {
         self.view.set_cb_max_visible_items(max);
     }
 }

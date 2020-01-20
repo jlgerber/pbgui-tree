@@ -1,9 +1,9 @@
-use qt_core::{QAbstractItemModel, QModelIndex, QSize, QString, SlotOfQString, WidgetAttribute};
+use qt_core::{QAbstractItemModel, QModelIndex, QSize, QString, WidgetAttribute};
 use qt_gui::q_icon::{Mode, State};
 use qt_gui::QIcon;
 use qt_gui::{QStandardItem, QStandardItemModel};
 use qt_widgets::{
-    cpp_core::{CastInto, CppBox, DynamicCast, MutPtr, Ref, StaticUpcast},
+    cpp_core::{CastInto, CppBox, DynamicCast, MutPtr, StaticUpcast},
     q_abstract_item_view::EditTrigger,
     q_header_view::ResizeMode,
     QComboBox, QFrame, QLabel, QLayout, QLineEdit, QPushButton, QTreeView, QWidget,
@@ -14,20 +14,19 @@ const STYLE_STR: &'static str = include_str!("../resources/tree.qss");
 
 /// A struct holding the QTreeView and providing a simple Api, mirrored
 /// by the parent.
-pub struct InnerTreeView<'a> {
-    pub parent_frame: MutPtr<QFrame>,
-    pub cbox: MutPtr<QComboBox>,
-    pub filter_cb: MutPtr<QPushButton>,
-    pub filter_frame: MutPtr<QFrame>,
-    pub filter: MutPtr<QLineEdit>,
-    pub view: MutPtr<QTreeView>,
-    pub filter_slot: SlotOfQString<'a>,
+pub(crate) struct InnerTreeView {
+    parent_frame: MutPtr<QFrame>,
+    cbox: MutPtr<QComboBox>,
+    filter_cb: MutPtr<QPushButton>,
+    filter_frame: MutPtr<QFrame>,
+    filter: MutPtr<QLineEdit>,
+    view: MutPtr<QTreeView>,
 }
 
-impl<'a> InnerTreeView<'a> {
+impl InnerTreeView {
     /// create an InnerTreeView instance. This inner tree allows us
     /// to use the tree's api in Slots exposed by the parent
-    pub fn create<T>(parent_widget: MutPtr<T>) -> InnerTreeView<'a>
+    pub(crate) fn create<T>(parent_widget: MutPtr<T>) -> InnerTreeView
     where
         T: StaticUpcast<QWidget>,
     {
@@ -62,7 +61,7 @@ impl<'a> InnerTreeView<'a> {
 
             let mut model = QStandardItemModel::new_0a();
             model.set_column_count(2);
-            let model_ptr = model.as_mut_ptr();
+
             treeview_ptr.set_model(model.into_ptr());
             treeview_ptr.header().resize_section(1, 20);
             treeview_ptr.header().set_stretch_last_section(false);
@@ -77,34 +76,14 @@ impl<'a> InnerTreeView<'a> {
                 filter_frame: filter_frame_ptr,
                 filter,
                 view: treeview_ptr.clone(),
-                filter_slot: SlotOfQString::new(move |new_str: Ref<QString>| {
-                    let root = QModelIndex::new();
-                    if new_str.to_std_string() == "" {
-                        for cnt in (0..model_ptr.row_count_0a()).rev() {
-                            treeview_ptr.set_row_hidden(cnt, root.as_ref(), false)
-                        }
-                    } else {
-                        for cnt in (0..model_ptr.row_count_0a()).rev() {
-                            let item = model_ptr.item_2a(cnt, 0);
-                            let txt = item.text();
-                            if txt.contains_q_string(new_str) {
-                                treeview_ptr.set_row_hidden(cnt, root.as_ref(), false)
-                            } else {
-                                treeview_ptr.set_row_hidden(cnt, root.as_ref(), true)
-                            }
-                        }
-                    }
-                }),
             };
-
-            itv.filter.text_changed().connect(&itv.filter_slot);
 
             itv
         }
     }
 
     /// Retreive the model from the view
-    pub fn model(&self) -> MutPtr<QStandardItemModel> {
+    pub(crate) fn model(&self) -> MutPtr<QStandardItemModel> {
         unsafe {
             let model = self.view.model();
             if model.is_null() {
@@ -114,17 +93,48 @@ impl<'a> InnerTreeView<'a> {
         }
     }
 
+    #[allow(dead_code)]
+    /// Retrieve a MutPtr to the main QFrame
+    pub(crate) fn main(&self) -> MutPtr<QFrame> {
+        self.parent_frame
+    }
+
     /// Retrieve a mutable pointer to the combobox
-    pub fn combobox(&self) -> MutPtr<QComboBox> {
+    pub(crate) fn combobox(&self) -> MutPtr<QComboBox> {
         self.cbox
     }
-    /// set the row as hidden
-    pub unsafe fn set_row_hidden(&self, idx: Ref<QModelIndex>, hidden: bool) {
-        let mut view = self.view;
-        view.set_row_hidden(0, idx, hidden);
+
+    #[allow(dead_code)]
+    /// retieve a MutPtr to the filter pushbutton
+    pub(crate) fn filter_button(&self) -> MutPtr<QPushButton> {
+        self.filter_cb
     }
+
+    #[allow(dead_code)]
+    /// Retrieve a MutPtr to the filter's frame
+    pub(crate) fn filter_frame(&self) -> MutPtr<QFrame> {
+        self.filter_frame
+    }
+
+    /// Retrieve a MutPtr to the filter QLineEdit
+    pub(crate) fn filter(&self) -> MutPtr<QLineEdit> {
+        self.filter
+    }
+
+    /// Retrieve a MutPTr to the QTreeView view
+    pub(crate) fn view(&self) -> MutPtr<QTreeView> {
+        self.view
+    }
+
+    /// set the row as hidden
+    pub(crate) unsafe fn set_row_hidden(&self, row: i32, hidden: bool) {
+        let root = QModelIndex::new();
+        let mut view = self.view;
+        view.set_row_hidden(row, root.as_ref(), hidden);
+    }
+
     /// Given a type that implements ToQstringOwned, append a distribution
-    pub fn add_package<T: ToQStringOwned>(&self, input: T) {
+    pub(crate) fn add_package<T: ToQStringOwned>(&self, input: T) {
         unsafe {
             let mut model = self.model();
             let icon = QIcon::from_q_string(&QString::from_std_str(":/images/package_md.png"));
@@ -140,7 +150,7 @@ impl<'a> InnerTreeView<'a> {
     }
 
     /// Clear the package list from the model
-    pub fn clear_packages(&self) {
+    pub(crate) fn clear_packages(&self) {
         unsafe {
             let mut model = self.model();
             for c in (0..model.row_count_0a()).rev() {
@@ -151,7 +161,7 @@ impl<'a> InnerTreeView<'a> {
     }
 
     /// Given a vector of a type that implements ToQstringOwned, append a distribution
-    pub fn set_packages<T: ToQStringOwned>(&self, inputs: Vec<T>) {
+    pub(crate) fn set_packages<T: ToQStringOwned>(&self, inputs: Vec<T>) {
         unsafe {
             let mut model = self.model();
             let mut parent = model.invisible_root_item();
@@ -184,7 +194,7 @@ impl<'a> InnerTreeView<'a> {
     ///
     /// # Returns
     /// * None
-    pub fn add_child<I>(&self, parent: MutPtr<qt_gui::QStandardItem>, child: I)
+    pub(crate) fn add_child<I>(&self, parent: MutPtr<qt_gui::QStandardItem>, child: I)
     where
         I: ToQStringOwned,
     {
@@ -204,11 +214,12 @@ impl<'a> InnerTreeView<'a> {
     /// * None
     ///
     /// # Returns None
-    pub fn remove_sites(&self) {
+    pub(crate) fn remove_sites(&self) {
         unsafe {
             self.combobox().clear();
         }
     }
+
     /// Set combobox sites, replacing any extant sites
     ///
     /// # Arguments
@@ -216,7 +227,7 @@ impl<'a> InnerTreeView<'a> {
     ///
     /// # Returns
     /// * None
-    pub fn set_sites<'c, I>(&self, items: Vec<I>, current: I)
+    pub(crate) fn set_sites<'c, I>(&self, items: Vec<I>, current: I)
     where
         I: AsRef<str>,
     {
@@ -235,10 +246,21 @@ impl<'a> InnerTreeView<'a> {
         }
     }
 
-    /// set childred
-    pub fn set_children<I>(
+    /// Set children
+    ///
+    /// # Arguments
+    /// * `parent` - A MutPtr to the parent item
+    /// * `children` - A Vec of type implementint ToQStringOwned
+    /// * `add_empty_gchild` - whether to add an empty grandchild. This is done
+    /// in order to get qt to draw the expand/collapse controls. Normally, we
+    /// would handle this through other means, but lacking inheritance, we
+    /// have to go a hacky route.
+    ///
+    /// # Returns
+    /// * None
+    pub(crate) fn set_children<I>(
         &self,
-        mut parent: MutPtr<qt_gui::QStandardItem>,
+        parent: MutPtr<qt_gui::QStandardItem>,
         children: Vec<I>,
         add_empty_gchild: bool,
     ) where
@@ -246,6 +268,7 @@ impl<'a> InnerTreeView<'a> {
     {
         unsafe {
             let mut cnt = 0;
+            let mut parent = parent;
             for child in children {
                 let mut item = QStandardItem::new();
                 let txt = child.to_qstring();
@@ -267,24 +290,70 @@ impl<'a> InnerTreeView<'a> {
         }
     }
 
-    pub fn clear_selection(&self) {
+    /// Clear the current selection
+    ///
+    /// # Arguments
+    /// * None
+    ///
+    /// # Returns
+    /// * None
+    pub(crate) fn clear_selection(&self) {
         unsafe {
             self.view.selection_model().clear_selection();
         }
     }
+
     /// Retrieve the filter combobox
-    pub fn filter_cb(&self) -> MutPtr<QPushButton> {
+    ///
+    /// # Arguments
+    /// * None
+    ///
+    /// # Returns
+    /// * MutPtr of QPushButton
+    pub(crate) fn filter_cb(&self) -> MutPtr<QPushButton> {
         self.filter_cb
     }
 
-    /// turn visibility of frame off and on
-    pub fn set_filter_visibility(&self, visible: bool) {
+    /// Turn visibility of frame off and on
+    ///
+    /// # Arguments
+    /// * `visible` - boolean indicating the visibility state
+    ///
+    /// # Returns
+    /// * None
+    pub(crate) fn set_filter_visibility(&self, visible: bool) {
         unsafe {
             let mut filter_frame = self.filter_frame;
             filter_frame.set_visible(visible);
         }
     }
 
+    /// Set the stylesheet to the internal stylesheet
+    ///
+    /// # Arguments
+    /// * None
+    ///
+    /// # Returns
+    /// *None
+    pub(crate) fn set_default_stylesheet(&self) {
+        set_stylesheet_from_str(STYLE_STR, self.parent_frame);
+    }
+
+    /// Change the max number of items displayed in the combobox's dropdown
+    /// list
+    ///
+    /// # Arguments
+    /// * `max` - Maximum number of visible items in the comobobox's dropdown
+    ///
+    /// # Returns
+    /// * None
+    pub(crate) fn set_cb_max_visible_items(&self, max: i32) {
+        unsafe {
+            self.combobox().set_max_visible_items(max);
+        }
+    }
+
+    // Create a new `CppBox`'ed QFrame instance
     unsafe fn new_qframe() -> CppBox<QFrame> {
         let mut qf = QFrame::new_0a();
         qf.set_object_name(&qs("PackageFilterFrame"));
@@ -302,31 +371,6 @@ impl<'a> InnerTreeView<'a> {
         let qle_ptr = qle.as_mut_ptr();
         parent.layout().add_widget(qle.into_ptr());
         qle_ptr
-    }
-
-    /// Set the stylesheet to the internal stylesheet
-    ///
-    /// # Arguments
-    /// * None
-    ///
-    /// # Returns
-    /// *None
-    pub fn set_default_stylesheet(&self) {
-        set_stylesheet_from_str(STYLE_STR, self.parent_frame);
-    }
-
-    /// Change the max number of items displayed in the combobox's dropdown
-    /// list
-    ///
-    /// # Arguments
-    /// * `max` - Maximum number of visible items in the comobobox's dropdown
-    ///
-    /// # Returns
-    /// * None
-    pub fn set_cb_max_visible_items(&self, max: i32) {
-        unsafe {
-            self.combobox().set_max_visible_items(max);
-        }
     }
 
     fn create_cbox<I>(layout: I) -> (MutPtr<QComboBox>, MutPtr<QPushButton>)
