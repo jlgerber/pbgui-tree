@@ -6,6 +6,10 @@ QTreeView#PackageTreeView {
     selection-background-color: rgb(40,40,40);
 }
 
+QTreeView#PackageTreeView::item:hover {
+       background: rgb(60,60,60);
+}
+
 QTreeView#PackageTreeView::item::last:hover {
         image: url(":images/pin_white.png");
         qproperty-iconSize: 14px;
