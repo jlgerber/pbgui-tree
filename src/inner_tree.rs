@@ -33,6 +33,7 @@ impl InnerTreeView {
         unsafe {
             let mut qframe = QFrame::new_0a();
             let qframe_ptr = qframe.as_mut_ptr();
+
             let mut layout = create_vlayout();
             let mut layout_ptr = layout.as_mut_ptr();
             qframe.set_layout(layout.into_ptr());
@@ -57,7 +58,9 @@ impl InnerTreeView {
             treeview_ptr.set_items_expandable(true);
             treeview_ptr.set_uniform_row_heights(true);
             treeview_ptr.set_header_hidden(true);
-            parent_widget.layout().add_widget(treeview.into_ptr());
+
+            //parent_widget.layout().add_widget(treeview.into_ptr());
+            layout_ptr.add_widget(treeview.into_ptr());
 
             let mut model = QStandardItemModel::new_0a();
             model.set_column_count(2);
