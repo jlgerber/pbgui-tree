@@ -22,11 +22,14 @@ QTreeView#PackageTreeView::item::last:pressed {
 
 } 
 
+/*
 QTreeView#PackageTreeView::item::last:selected {
         image: url(":images/pin_blue.png");
         qproperty-iconSize: 14px;
 
 } 
+*/
+
 /* 
 QTreeView#PackageTreeView {
     selection-background-color: rgb(40,40,40);

@@ -47,7 +47,7 @@ impl<'a> DistributionTreeView<'a> {
         unsafe {
             let treeview = Rc::new(InnerTreeView::create(parent_widget));
 
-            let tv = treeview.clone();
+            //let tv = treeview.clone();
             let filter_slot =
                 SlotOfQString::new(enclose! { (treeview) move |new_str: Ref<QString>| {
                     let model_ptr = treeview.model();
