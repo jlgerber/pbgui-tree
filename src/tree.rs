@@ -1,7 +1,7 @@
 use crate::api::{ClientProxy, PackratDb};
 use crate::inner_tree::InnerTreeView;
 use packybara::traits::*;
-use qt_core::{QModelIndex, QString, SlotOfBool, SlotOfQModelIndex, SlotOfQString};
+use qt_core::{QModelIndex, QString, Signal, SlotOfBool, SlotOfQModelIndex, SlotOfQString};
 use qt_gui::{QStandardItem, QStandardItemModel};
 use qt_widgets::{
     cpp_core::{MutPtr, Ref, StaticUpcast},
@@ -16,7 +16,7 @@ use std::rc::Rc;
 /// collapsing components
 pub struct DistributionTreeView<'a> {
     view: Rc<InnerTreeView>,
-    clicked: SlotOfQModelIndex<'a>,
+    //clicked: SlotOfQModelIndex<'a>,
     expanded: SlotOfQModelIndex<'a>,
     collapsed: SlotOfQModelIndex<'a>,
     filter_visible: SlotOfBool<'a>,
@@ -70,10 +70,9 @@ impl<'a> DistributionTreeView<'a> {
             let dtv = DistributionTreeView {
                 view: treeview.clone(),
                 // Slots
-                clicked: SlotOfQModelIndex::new(move |_idx: Ref<QModelIndex>| {
-                    tv.clear_selection();
-                }),
-
+                // clicked: SlotOfQModelIndex::new(move |_idx: Ref<QModelIndex>| {
+                //     tv.clear_selection();
+                // }),
                 expanded: SlotOfQModelIndex::new(
                     enclose! { (treeview) move |idx: Ref<QModelIndex>| {
                         let model = treeview.model();
@@ -135,7 +134,7 @@ impl<'a> DistributionTreeView<'a> {
             };
 
             // Set up signals & slots
-            treeview.view().clicked().connect(&dtv.clicked);
+            //treeview.view().clicked().connect(&dtv.clicked);
             treeview.view().expanded().connect(&dtv.expanded);
             treeview.view().collapsed().connect(&dtv.collapsed);
             treeview.filter().text_changed().connect(&dtv.filter_slot);
@@ -179,6 +178,10 @@ impl<'a> DistributionTreeView<'a> {
         self.view.model()
     }
 
+    /// Retrieve the clicked Signal so that we may connect it to a slot
+    pub fn clicked(&self) -> Signal<(*const QModelIndex,)> {
+        self.view.view().clicked()
+    }
     /// Given a type that implements ToQstringOwned, append a distribution.
     ///
     /// # Arguments
@@ -276,16 +279,5 @@ impl<'a> DistributionTreeView<'a> {
     /// * None
     pub fn set_cb_max_visible_items(&self, max: i32) {
         self.view.set_cb_max_visible_items(max);
-    }
-
-    /// Set the clicked slot's closure
-    ///
-    /// # Arguments
-    /// * slot_fn - The closure
-    ///
-    /// # Returns
-    /// * None
-    pub fn set_clicked<F: FnMut(Ref<QModelIndex>) + 'a>(&mut self, slot_fn: F) {
-        self.clicked.set(slot_fn);
     }
 }
