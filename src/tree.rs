@@ -277,4 +277,15 @@ impl<'a> DistributionTreeView<'a> {
     pub fn set_cb_max_visible_items(&self, max: i32) {
         self.view.set_cb_max_visible_items(max);
     }
+
+    /// Set the clicked slot's closure
+    ///
+    /// # Arguments
+    /// * slot_fn - The closure
+    ///
+    /// # Returns
+    /// * None
+    pub fn set_clicked<F: FnMut(Ref<QModelIndex>) + 'a>(&mut self, slot_fn: F) {
+        self.clicked.set(slot_fn);
+    }
 }

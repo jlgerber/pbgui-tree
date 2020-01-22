@@ -42,7 +42,6 @@ fn main() {
         mytree.clear_packages();
         let client = ClientProxy::connect().expect("Unable to connect via ClientProxy");
         let mut db = PackratDb::new(client);
-
         let results = get_all_packages(&mut db);
         let results = results.iter().map(|s| s.name.as_str()).collect::<Vec<_>>();
         let sites = get_all_sites(&mut db);
